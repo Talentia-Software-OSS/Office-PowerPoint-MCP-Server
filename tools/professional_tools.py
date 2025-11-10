@@ -5,9 +5,10 @@ Handles themes, effects, fonts, and advanced formatting.
 from typing import Dict, List, Optional, Any
 from mcp.server.fastmcp import FastMCP
 import utils as ppt_utils
+import os
 
 
-def register_professional_tools(app: FastMCP, presentations: Dict, get_current_presentation_id):
+def register_professional_tools(app: FastMCP, resolve_presentation_path):
     """Register professional design tools with the FastMCP app"""
     
     @app.tool()
@@ -23,22 +24,20 @@ def register_professional_tools(app: FastMCP, presentations: Dict, get_current_p
         enhance_content: bool = True,
         enhance_shapes: bool = True,
         enhance_charts: bool = True,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Unified professional design tool for themes, slides, and visual enhancements.
         This applies professional styling and themes rather than structural layout changes."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
         if operation == "get_schemes":
             # Return available color schemes
             return ppt_utils.get_color_schemes()
         
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         try:
             if operation == "professional_slide":
@@ -56,11 +55,13 @@ def register_professional_tools(app: FastMCP, presentations: Dict, get_current_p
                     content=content
                 )
                 
+                ppt_utils.save_presentation(pres, path)
                 return {
                     "message": f"Added professional {slide_type} slide",
                     "slide_index": len(pres.slides) - 1,
                     "color_scheme": color_scheme,
-                    "slide_type": slide_type
+                    "slide_type": slide_type,
+                    "file_path": path
                 }
             
             elif operation == "theme":
@@ -71,10 +72,12 @@ def register_professional_tools(app: FastMCP, presentations: Dict, get_current_p
                     apply_to_existing=apply_to_existing
                 )
                 
+                ppt_utils.save_presentation(pres, path)
                 return {
                     "message": f"Applied {color_scheme} theme to presentation",
                     "color_scheme": color_scheme,
-                    "applied_to_existing": apply_to_existing
+                    "applied_to_existing": apply_to_existing,
+                    "file_path": path
                 }
             
             elif operation == "enhance":
@@ -99,11 +102,13 @@ def register_professional_tools(app: FastMCP, presentations: Dict, get_current_p
                     enhance_charts=enhance_charts
                 )
                 
+                ppt_utils.save_presentation(pres, path)
                 return {
                     "message": f"Enhanced slide {slide_index} with {color_scheme} scheme",
                     "slide_index": slide_index,
                     "color_scheme": color_scheme,
-                    "enhancements_applied": result.get("enhancements_applied", [])
+                    "enhancements_applied": result.get("enhancements_applied", []),
+                    "file_path": path
                 }
             
             else:
@@ -121,17 +126,15 @@ def register_professional_tools(app: FastMCP, presentations: Dict, get_current_p
         slide_index: int,
         shape_index: int,
         effects: Dict[str, Dict],  # {"shadow": {"blur_radius": 4.0, ...}, "glow": {...}}
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Apply multiple picture effects in combination."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -237,6 +240,8 @@ def register_professional_tools(app: FastMCP, presentations: Dict, get_current_p
             if warnings:
                 result["warnings"] = warnings
             
+            ppt_utils.save_presentation(pres, path)
+            result["file_path"] = path
             return result
         
         except Exception as e:

@@ -5,9 +5,11 @@ Implements advanced chart data manipulation capabilities.
 
 from typing import Dict, List, Optional, Any
 from pptx.chart.data import ChartData
+import os
+from mcp.server.fastmcp import FastMCP
+import utils as ppt_utils
 
-def register_chart_tools(app, presentations, get_current_presentation_id, validate_parameters, 
-                          is_positive, is_non_negative, is_in_range, is_valid_rgb):
+def register_chart_tools(app, resolve_presentation_path):
     """Register chart data management tools with the FastMCP app."""
     
     @app.tool()
@@ -16,7 +18,7 @@ def register_chart_tools(app, presentations, get_current_presentation_id, valida
         shape_index: int,
         categories: List[str],
         series_data: List[Dict],
-        presentation_id: str = None
+        presentation_file_name: str = None
     ) -> Dict:
         """
         Replace existing chart data with new categories and series.
@@ -32,12 +34,12 @@ def register_chart_tools(app, presentations, get_current_presentation_id, valida
             Dictionary with operation results
         """
         try:
-            # Get presentation
-            pres_id = presentation_id or get_current_presentation_id()
-            if pres_id not in presentations:
-                return {"error": "Presentation not found"}
-            
-            pres = presentations[pres_id]
+            if not presentation_file_name:
+                return {"error": "presentation_file_name is required"}
+            path = resolve_presentation_path(presentation_file_name)
+            if not os.path.exists(path):
+                return {"error": f"File not found: {path}"}
+            pres = ppt_utils.open_presentation(path)
             
             # Validate slide index
             if not (0 <= slide_index < len(pres.slides)):
@@ -71,11 +73,13 @@ def register_chart_tools(app, presentations, get_current_presentation_id, valida
             # Replace chart data
             chart.replace_data(chart_data)
             
+            ppt_utils.save_presentation(pres, path)
             return {
                 "message": f"Updated chart data on slide {slide_index}, shape {shape_index}",
                 "categories": categories,
                 "series_count": len(series_data),
-                "series_names": [s['name'] for s in series_data]
+                "series_names": [s['name'] for s in series_data],
+                "file_path": path
             }
             
         except Exception as e:

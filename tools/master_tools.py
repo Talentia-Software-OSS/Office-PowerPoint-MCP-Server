@@ -4,9 +4,11 @@ Implements slide master and layout access capabilities.
 """
 
 from typing import Dict, List, Optional, Any
+import os
+from mcp.server.fastmcp import FastMCP
+import utils as ppt_utils
 
-def register_master_tools(app, presentations, get_current_presentation_id, validate_parameters, 
-                          is_positive, is_non_negative, is_in_range, is_valid_rgb):
+def register_master_tools(app, resolve_presentation_path):
     """Register slide master management tools with the FastMCP app."""
     
     @app.tool()
@@ -14,7 +16,7 @@ def register_master_tools(app, presentations, get_current_presentation_id, valid
         operation: str,
         master_index: int = 0,
         layout_index: int = None,
-        presentation_id: str = None
+        presentation_file_name: str = None
     ) -> Dict:
         """
         Access and manage slide master properties and layouts.
@@ -29,12 +31,12 @@ def register_master_tools(app, presentations, get_current_presentation_id, valid
             Dictionary with slide master information
         """
         try:
-            # Get presentation
-            pres_id = presentation_id or get_current_presentation_id()
-            if pres_id not in presentations:
-                return {"error": "Presentation not found"}
-            
-            pres = presentations[pres_id]
+            if not presentation_file_name:
+                return {"error": "presentation_file_name is required"}
+            path = resolve_presentation_path(presentation_file_name)
+            if not os.path.exists(path):
+                return {"error": f"File not found: {path}"}
+            pres = ppt_utils.open_presentation(path)
             
             if operation == "list":
                 # List all slide masters
@@ -49,7 +51,8 @@ def register_master_tools(app, presentations, get_current_presentation_id, valid
                 return {
                     "message": f"Found {len(masters_info)} slide masters",
                     "masters": masters_info,
-                    "total_masters": len(pres.slide_masters)
+                    "total_masters": len(pres.slide_masters),
+                    "file_path": path
                 }
             
             # Validate master index
@@ -71,7 +74,8 @@ def register_master_tools(app, presentations, get_current_presentation_id, valid
                 return {
                     "message": f"Master {master_index} has {len(layouts_info)} layouts",
                     "master_index": master_index,
-                    "layouts": layouts_info
+                    "layouts": layouts_info,
+                    "file_path": path
                 }
             
             elif operation == "get_info":
@@ -96,7 +100,8 @@ def register_master_tools(app, presentations, get_current_presentation_id, valid
                         "master_index": master_index,
                         "layout_index": layout_index,
                         "layout_name": layout.name,
-                        "placeholders": placeholders_info
+                        "placeholders": placeholders_info,
+                        "file_path": path
                     }
                 else:
                     # Master info
@@ -104,7 +109,8 @@ def register_master_tools(app, presentations, get_current_presentation_id, valid
                         "message": f"Master {master_index} information",
                         "master_index": master_index,
                         "layout_count": len(master.slide_layouts),
-                        "name": getattr(master, 'name', f"Master {master_index}")
+                        "name": getattr(master, 'name', f"Master {master_index}"),
+                        "file_path": path
                     }
             
             else:

@@ -6,9 +6,10 @@ and advanced features like dynamic sizing, auto-wrapping, and visual effects.
 from typing import Dict, List, Optional, Any
 from mcp.server.fastmcp import FastMCP
 import utils.template_utils as template_utils
+import os
 
 
-def register_template_tools(app: FastMCP, presentations: Dict, get_current_presentation_id):
+def register_template_tools(app: FastMCP, resolve_presentation_path):
     """Register template-based tools with the FastMCP app"""
     
     @app.tool()
@@ -36,7 +37,7 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
         color_scheme: str = "modern_blue",
         content_mapping: Optional[Dict[str, str]] = None,
         image_paths: Optional[Dict[str, str]] = None,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """
         Apply a structured layout template to an existing slide.
@@ -50,14 +51,13 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
             image_paths: Dictionary mapping image element roles to file paths
             presentation_id: Presentation ID (uses current if None)
         """
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        from utils import presentation_utils as ppt_utils  # late import to avoid circular
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -73,10 +73,12 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
             )
             
             if result['success']:
+                ppt_utils.save_presentation(pres, path)
                 return {
                     "message": f"Applied template '{template_id}' to slide {slide_index}",
                     "slide_index": slide_index,
-                    "template_applied": result
+                    "template_applied": result,
+                    "file_path": path
                 }
             else:
                 return {
@@ -95,7 +97,7 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
         content_mapping: Optional[Dict[str, str]] = None,
         image_paths: Optional[Dict[str, str]] = None,
         layout_index: int = 1,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """
         Create a new slide using a layout template.
@@ -108,14 +110,13 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
             layout_index: PowerPoint layout index to use as base (default: 1)
             presentation_id: Presentation ID (uses current if None)
         """
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        from utils import presentation_utils as ppt_utils
+        pres = ppt_utils.open_presentation(path)
         
         # Validate layout index
         if layout_index < 0 or layout_index >= len(pres.slide_layouts):
@@ -136,10 +137,12 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
             )
             
             if result['success']:
+                ppt_utils.save_presentation(pres, path)
                 return {
                     "message": f"Created slide {slide_index} using template '{template_id}'",
                     "slide_index": slide_index,
-                    "template_applied": result
+                    "template_applied": result,
+                    "file_path": path
                 }
             else:
                 return {
@@ -156,7 +159,7 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
         template_sequence: List[Dict[str, Any]],
         color_scheme: str = "modern_blue",
         presentation_title: Optional[str] = None,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """
         Create a complete presentation from a sequence of templates.
@@ -192,14 +195,12 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
             }
         ]
         """
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        # Create new presentation file from sequence
+        from utils import presentation_utils as ppt_utils
+        pres = ppt_utils.create_presentation()
         
         if not template_sequence:
             return {
@@ -217,18 +218,20 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
             )
             
             if result['success']:
+                saved = ppt_utils.save_presentation(pres, path)
                 return {
                     "message": f"Created presentation with {result['total_slides']} slides",
-                    "presentation_id": pres_id,
                     "creation_result": result,
-                    "total_slides": len(pres.slides)
+                    "total_slides": len(pres.slides),
+                    "file_path": saved
                 }
             else:
+                saved = ppt_utils.save_presentation(pres, path)
                 return {
                     "warning": "Presentation created with some errors",
-                    "presentation_id": pres_id,
                     "creation_result": result,
-                    "total_slides": len(pres.slides)
+                    "total_slides": len(pres.slides),
+                    "file_path": saved
                 }
                 
         except Exception as e:
@@ -294,7 +297,7 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
         color_scheme: str = "modern_blue",
         include_charts: bool = True,
         include_images: bool = False,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """
         Automatically generate a presentation based on topic and preferences.
@@ -306,14 +309,15 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
             color_scheme: Color scheme to use
             include_charts: Whether to include chart slides
             include_images: Whether to include image placeholders
-            presentation_id: Presentation ID (uses current if None)
+            presentation file name: File name or path to an existing presentation
         """
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        from utils import presentation_utils as ppt_utils
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_count < 3 or slide_count > 20:
             return {
@@ -377,11 +381,11 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
                 }
                 template_sequence.append(template_config)
             
-            # Create the presentation
+            # Populate the existing presentation with the generated slides
             result = template_utils.create_presentation_from_template_sequence(
-                presentations[pres_id], template_sequence, color_scheme
+                pres, template_sequence, color_scheme
             )
-            
+            ppt_utils.save_presentation(pres, path)
             return {
                 "message": f"Auto-generated {slide_count}-slide presentation on '{topic}'",
                 "topic": topic,
@@ -389,7 +393,8 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
                 "color_scheme": color_scheme,
                 "slide_count": slide_count,
                 "generation_result": result,
-                "templates_used": [t[0] for t in templates_to_use]
+                "templates_used": [t[0] for t in templates_to_use],
+                "file_path": path
             }
             
         except Exception as e:
@@ -408,7 +413,7 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
         optimize_spacing: bool = True,
         min_font_size: int = 8,
         max_font_size: int = 36,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """
         Optimize text elements on a slide for better readability and fit.
@@ -420,16 +425,15 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
             optimize_spacing: Whether to optimize line spacing
             min_font_size: Minimum allowed font size
             max_font_size: Maximum allowed font size
-            presentation_id: Presentation ID (uses current if None)
+            presentation file name: File name or path to the presentation
         """
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        from utils import presentation_utils as ppt_utils
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -503,6 +507,7 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
                             "optimizations": shape_optimizations
                         })
             
+            ppt_utils.save_presentation(pres, path)
             return {
                 "message": f"Optimized {len(optimizations_applied)} text elements on slide {slide_index}",
                 "slide_index": slide_index,
@@ -512,7 +517,8 @@ def register_template_tools(app: FastMCP, presentations: Dict, get_current_prese
                     "auto_wrap": auto_wrap,
                     "optimize_spacing": optimize_spacing,
                     "font_size_range": f"{min_font_size}-{max_font_size}pt"
-                }
+                },
+                "file_path": path
             }
             
         except Exception as e:

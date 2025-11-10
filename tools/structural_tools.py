@@ -5,9 +5,10 @@ Handles tables, shapes, and charts.
 from typing import Dict, List, Optional, Any
 from mcp.server.fastmcp import FastMCP
 import utils as ppt_utils
+import os
 
 
-def register_structural_tools(app: FastMCP, presentations: Dict, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb, add_shape_direct):
+def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb, add_shape_direct, resolve_presentation_path):
     """Register structural element tools with the FastMCP app"""
     
     @app.tool()
@@ -26,17 +27,15 @@ def register_structural_tools(app: FastMCP, presentations: Dict, get_current_pre
         header_bg_color: Optional[List[int]] = None,
         body_bg_color: Optional[List[int]] = None,
         border_color: Optional[List[int]] = None,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Add a table to a slide with enhanced formatting options."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -112,12 +111,15 @@ def register_structural_tools(app: FastMCP, presentations: Dict, get_current_pre
                         else:
                             ppt_utils.format_table_cell(cell, font_size=body_font_size)
             
-            return {
+            result = {
                 "message": f"Added {rows}x{cols} table to slide {slide_index}",
                 "shape_index": len(slide.shapes) - 1,
                 "rows": rows,
-                "cols": cols
+                "cols": cols,
+                "file_path": path
             }
+            ppt_utils.save_presentation(pres, path)
+            return result
         except Exception as e:
             return {
                 "error": f"Failed to add table: {str(e)}"
@@ -137,17 +139,15 @@ def register_structural_tools(app: FastMCP, presentations: Dict, get_current_pre
         bg_color: Optional[List[int]] = None,
         alignment: Optional[str] = None,
         vertical_alignment: Optional[str] = None,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Format a specific table cell."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -195,8 +195,10 @@ def register_structural_tools(app: FastMCP, presentations: Dict, get_current_pre
                 vertical_alignment=vertical_alignment
             )
             
+            ppt_utils.save_presentation(pres, path)
             return {
-                "message": f"Formatted cell at row {row}, column {col} in table at shape index {shape_index} on slide {slide_index}"
+                "message": f"Formatted cell at row {row}, column {col} in table at shape index {shape_index} on slide {slide_index}",
+                "file_path": path
             }
         except Exception as e:
             return {
@@ -217,17 +219,15 @@ def register_structural_tools(app: FastMCP, presentations: Dict, get_current_pre
         text: Optional[str] = None,  # Add text to shape
         font_size: Optional[int] = None,
         font_color: Optional[List[int]] = None,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Add an auto shape to a slide with enhanced options."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -259,10 +259,13 @@ def register_structural_tools(app: FastMCP, presentations: Dict, get_current_pre
                         color=tuple(font_color) if font_color else None
                     )
             
-            return {
+            result = {
                 "message": f"Added {shape_type} shape to slide {slide_index}",
-                "shape_index": len(slide.shapes) - 1
+                "shape_index": len(slide.shapes) - 1,
+                "file_path": path
             }
+            ppt_utils.save_presentation(pres, path)
+            return result
         except ValueError as e:
             return {
                 "error": str(e)
@@ -290,17 +293,15 @@ def register_structural_tools(app: FastMCP, presentations: Dict, get_current_pre
         x_axis_title: Optional[str] = None,
         y_axis_title: Optional[str] = None,
         color_scheme: Optional[str] = None,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Add a chart to a slide with comprehensive formatting options."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -360,13 +361,16 @@ def register_structural_tools(app: FastMCP, presentations: Dict, get_current_pre
                 color_scheme=color_scheme
             )
             
-            return {
+            result = {
                 "message": f"Added {chart_type} chart to slide {slide_index}",
                 "shape_index": len(slide.shapes) - 1,
                 "chart_type": chart_type,
                 "series_count": len(series_names),
-                "categories_count": len(categories)
+                "categories_count": len(categories),
+                "file_path": path
             }
+            ppt_utils.save_presentation(pres, path)
+            return result
         except Exception as e:
             return {
                 "error": f"Failed to add chart: {str(e)}"

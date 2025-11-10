@@ -7,9 +7,11 @@ from typing import Dict, List, Optional, Any
 from pptx.util import Inches, Pt
 from pptx.enum.shapes import MSO_CONNECTOR
 from pptx.dml.color import RGBColor
+import os
+from mcp.server.fastmcp import FastMCP
+import utils as ppt_utils
 
-def register_connector_tools(app, presentations, get_current_presentation_id, validate_parameters, 
-                          is_positive, is_non_negative, is_in_range, is_valid_rgb):
+def register_connector_tools(app, resolve_presentation_path):
     """Register connector tools with the FastMCP app."""
     
     @app.tool()
@@ -22,7 +24,7 @@ def register_connector_tools(app, presentations, get_current_presentation_id, va
         end_y: float,
         line_width: float = 1.0,
         color: List[int] = None,
-        presentation_id: str = None
+        presentation_file_name: str = None
     ) -> Dict:
         """
         Add connector lines/arrows between points on a slide.
@@ -42,12 +44,12 @@ def register_connector_tools(app, presentations, get_current_presentation_id, va
             Dictionary with operation results
         """
         try:
-            # Get presentation
-            pres_id = presentation_id or get_current_presentation_id()
-            if pres_id not in presentations:
-                return {"error": "Presentation not found"}
-            
-            pres = presentations[pres_id]
+            if not presentation_file_name:
+                return {"error": "presentation_file_name is required"}
+            path = resolve_presentation_path(presentation_file_name)
+            if not os.path.exists(path):
+                return {"error": f"File not found: {path}"}
+            pres = ppt_utils.open_presentation(path)
             
             # Validate slide index
             if not (0 <= slide_index < len(pres.slides)):
@@ -79,12 +81,14 @@ def register_connector_tools(app, presentations, get_current_presentation_id, va
             if color and is_valid_rgb(color):
                 connector.line.color.rgb = RGBColor(*color)
             
+            ppt_utils.save_presentation(pres, path)
             return {
                 "message": f"Added {connector_type} connector to slide {slide_index}",
                 "connector_type": connector_type,
                 "start_point": [start_x, start_y],
                 "end_point": [end_x, end_y],
-                "shape_index": len(slide.shapes) - 1
+                "shape_index": len(slide.shapes) - 1,
+                "file_path": path
             }
             
         except Exception as e:

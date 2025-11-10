@@ -10,7 +10,7 @@ import base64
 import os
 
 
-def register_content_tools(app: FastMCP, presentations: Dict, get_current_presentation_id, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb):
+def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb, resolve_presentation_path):
     """Register content management tools with the FastMCP app"""
     
     @app.tool()
@@ -21,17 +21,15 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
         background_colors: Optional[List[List[int]]] = None,  # For gradient: [[start_rgb], [end_rgb]]
         gradient_direction: str = "horizontal",
         color_scheme: str = "modern_blue",
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Add a new slide to the presentation with optional background styling."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         # Validate layout index
         if layout_index < 0 or layout_index >= len(pres.slide_layouts):
@@ -58,27 +56,26 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
                     slide, color_scheme, "subtle", gradient_direction
                 )
             
-            return {
+            result = {
                 "message": f"Added slide {slide_index} with layout {layout_index}",
                 "slide_index": slide_index,
-                "layout_name": layout.name if hasattr(layout, 'name') else f"Layout {layout_index}"
+                "layout_name": layout.name if hasattr(layout, 'name') else f"Layout {layout_index}",
+                "file_path": path
             }
+            ppt_utils.save_presentation(pres, path)
+            return result
         except Exception as e:
             return {
                 "error": f"Failed to add slide: {str(e)}"
             }
 
     @app.tool()
-    def get_slide_info(slide_index: int, presentation_id: Optional[str] = None) -> Dict:
+    def get_slide_info(slide_index: int, presentation_file_name: str) -> Dict:
         """Get information about a specific slide."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -88,23 +85,21 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
         slide = pres.slides[slide_index]
         
         try:
-            return ppt_utils.get_slide_info(slide, slide_index)
+            info = ppt_utils.get_slide_info(slide, slide_index)
+            info["file_path"] = path
+            return info
         except Exception as e:
             return {
                 "error": f"Failed to get slide info: {str(e)}"
             }
 
     @app.tool()
-    def extract_slide_text(slide_index: int, presentation_id: Optional[str] = None) -> Dict:
+    def extract_slide_text(slide_index: int, presentation_file_name: str) -> Dict:
         """Extract all text content from a specific slide."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -116,6 +111,7 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
         try:
             result = ppt_utils.extract_slide_text_content(slide)
             result["slide_index"] = slide_index
+            result["file_path"] = path
             return result
         except Exception as e:
             return {
@@ -123,16 +119,12 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
             }
 
     @app.tool()
-    def extract_presentation_text(presentation_id: Optional[str] = None, include_slide_info: bool = True) -> Dict:
+    def extract_presentation_text(presentation_file_name: str, include_slide_info: bool = True) -> Dict:
         """Extract all text content from all slides in the presentation."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         try:
             slides_text = []
@@ -180,7 +172,7 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
             
             return {
                 "success": True,
-                "presentation_id": pres_id,
+                "file_path": path,
                 "total_slides": len(pres.slides),
                 "slides_with_text": len([s for s in slides_text if s.get("text_content") is not None]),
                 "total_text_shapes": total_text_shapes,
@@ -200,17 +192,15 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
         slide_index: int,
         placeholder_idx: int,
         text: str,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Populate a placeholder with text."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -221,8 +211,10 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
         
         try:
             ppt_utils.populate_placeholder(slide, placeholder_idx, text)
+            ppt_utils.save_presentation(pres, path)
             return {
-                "message": f"Populated placeholder {placeholder_idx} on slide {slide_index}"
+                "message": f"Populated placeholder {placeholder_idx} on slide {slide_index}",
+                "file_path": path
             }
         except Exception as e:
             return {
@@ -234,17 +226,15 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
         slide_index: int,
         placeholder_idx: int,
         bullet_points: List[str],
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Add bullet points to a placeholder."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -256,8 +246,10 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
         try:
             placeholder = slide.placeholders[placeholder_idx]
             ppt_utils.add_bullet_points(placeholder, bullet_points)
+            ppt_utils.save_presentation(pres, path)
             return {
-                "message": f"Added {len(bullet_points)} bullet points to placeholder {placeholder_idx} on slide {slide_index}"
+                "message": f"Added {len(bullet_points)} bullet points to placeholder {placeholder_idx} on slide {slide_index}",
+                "file_path": path
             }
         except Exception as e:
             return {
@@ -290,17 +282,15 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
         validation_only: bool = False,
         min_font_size: int = 8,
         max_font_size: int = 72,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Unified text management tool for adding, formatting, validating text, and formatting multiple text runs."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -339,11 +329,14 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
                     vertical_alignment=vertical_alignment,
                     auto_fit=auto_fit
                 )
-                return {
+                response = {
                     "message": f"Added text box to slide {slide_index}",
                     "shape_index": len(slide.shapes) - 1,
-                    "text": text
+                    "text": text,
+                    "file_path": path
                 }
+                ppt_utils.save_presentation(pres, path)
+                return response
             
             elif operation == "format":
                 # Format existing text shape
@@ -365,8 +358,10 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
                     alignment=alignment,
                     vertical_alignment=vertical_alignment
                 )
+                ppt_utils.save_presentation(pres, path)
                 return {
-                    "message": f"Formatted text shape {shape_index} on slide {slide_index}"
+                    "message": f"Formatted text shape {shape_index} on slide {slide_index}",
+                    "file_path": path
                 }
             
             elif operation == "validate":
@@ -392,6 +387,13 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
                     )
                     validation_result.update(fix_result)
                 
+                # Validation may or may not modify; save defensively if auto-fix applied
+                if validation_result.get("needs_optimization") or validation_result.get("optimizations_applied"):
+                    try:
+                        ppt_utils.save_presentation(pres, path)
+                    except Exception:
+                        pass
+                validation_result["file_path"] = path
                 return validation_result
             
             elif operation == "format_runs":
@@ -454,11 +456,13 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
                         "formatting_applied": {k: v for k, v in run_data.items() if k != 'text'}
                     })
                 
+                ppt_utils.save_presentation(pres, path)
                 return {
                     "message": f"Applied formatting to {len(formatted_runs)} text runs on shape {shape_index}",
                     "slide_index": slide_index,
                     "shape_index": shape_index,
-                    "formatted_runs": formatted_runs
+                    "formatted_runs": formatted_runs,
+                    "file_path": path
                 }
             
             else:
@@ -490,17 +494,15 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
         blur_radius: float = 0,
         filter_type: Optional[str] = None,
         output_path: Optional[str] = None,
-        presentation_id: Optional[str] = None
+        presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Unified image management tool for adding and enhancing images."""
-        pres_id = presentation_id if presentation_id is not None else get_current_presentation_id()
-        
-        if pres_id is None or pres_id not in presentations:
-            return {
-                "error": "No presentation is currently loaded or the specified ID is invalid"
-            }
-        
-        pres = presentations[pres_id]
+        if not presentation_file_name:
+            return {"error": "presentation_file_name is required"}
+        path = resolve_presentation_path(presentation_file_name)
+        if not os.path.exists(path):
+            return {"error": f"File not found: {path}"}
+        pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
             return {
@@ -525,9 +527,11 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
                         # Clean up temporary file
                         os.unlink(temp_path)
                         
+                        ppt_utils.save_presentation(pres, path)
                         return {
                             "message": f"Added image from base64 to slide {slide_index}",
-                            "shape_index": len(slide.shapes) - 1
+                            "shape_index": len(slide.shapes) - 1,
+                            "file_path": path
                         }
                     except Exception as e:
                         return {
@@ -541,10 +545,12 @@ def register_content_tools(app: FastMCP, presentations: Dict, get_current_presen
                         }
                     
                     shape = ppt_utils.add_image(slide, image_source, left, top, width, height)
+                    ppt_utils.save_presentation(pres, path)
                     return {
                         "message": f"Added image to slide {slide_index}",
                         "shape_index": len(slide.shapes) - 1,
-                        "image_path": image_source
+                        "image_path": image_source,
+                        "file_path": path
                     }
             
             elif operation == "enhance":
