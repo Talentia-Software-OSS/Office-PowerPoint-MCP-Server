@@ -47,12 +47,23 @@ def resolve_presentation_path(name_or_path: str) -> str:
     - If only a file name, place it under the presentations root directory.
     Ensures the root directory exists.
     """
-    raw = name_or_path.strip()
-    if os.path.isabs(raw) or os.path.dirname(raw):
-        return os.path.abspath(raw)
-    root = os.path.abspath(get_presentations_root())
-    os.makedirs(root, exist_ok=True)
-    return os.path.join(root, raw)
+    try:
+        raw = name_or_path.strip()
+        if os.path.isabs(raw) or os.path.dirname(raw):
+            abs_path = os.path.abspath(raw)
+            # Ensure directory exists for absolute or directory-containing paths
+            base_name = os.path.basename(abs_path)
+            looks_like_file = '.' in base_name and not base_name.startswith('.')
+            dir_to_create = os.path.dirname(abs_path) if looks_like_file else abs_path
+            if dir_to_create:
+                os.makedirs(dir_to_create, exist_ok=True)
+            return abs_path
+        root = os.path.abspath(get_presentations_root())
+        os.makedirs(root, exist_ok=True)
+        return os.path.join(root, raw)
+    except Exception as e:
+        print(f"Error resolving presentation path: {e}")
+        raise
 
 # Global state to store presentations in memory
 # presentations = {}
@@ -246,10 +257,10 @@ register_professional_tools(
     resolve_presentation_path
 )
 
-register_template_tools(
-    app,
-    resolve_presentation_path
-)
+# register_template_tools(
+#     app,
+#     resolve_presentation_path
+# )
 
 register_hyperlink_tools(
     app,

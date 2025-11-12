@@ -34,7 +34,7 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -115,8 +115,7 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
                 "message": f"Added {rows}x{cols} table to slide {slide_index}",
                 "shape_index": len(slide.shapes) - 1,
                 "rows": rows,
-                "cols": cols,
-                "file_path": path
+                "cols": cols
             }
             ppt_utils.save_presentation(pres, path)
             return result
@@ -146,7 +145,7 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -197,8 +196,7 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
             
             ppt_utils.save_presentation(pres, path)
             return {
-                "message": f"Formatted cell at row {row}, column {col} in table at shape index {shape_index} on slide {slide_index}",
-                "file_path": path
+                "message": f"Formatted cell at row {row}, column {col} in table at shape index {shape_index} on slide {slide_index}"
             }
         except Exception as e:
             return {
@@ -226,7 +224,7 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -261,8 +259,7 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
             
             result = {
                 "message": f"Added {shape_type} shape to slide {slide_index}",
-                "shape_index": len(slide.shapes) - 1,
-                "file_path": path
+                "shape_index": len(slide.shapes) - 1
             }
             ppt_utils.save_presentation(pres, path)
             return result
@@ -300,7 +297,7 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -366,8 +363,7 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
                 "shape_index": len(slide.shapes) - 1,
                 "chart_type": chart_type,
                 "series_count": len(series_names),
-                "categories_count": len(categories),
-                "file_path": path
+                "categories_count": len(categories)
             }
             ppt_utils.save_presentation(pres, path)
             return result

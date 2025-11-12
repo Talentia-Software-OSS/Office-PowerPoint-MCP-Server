@@ -55,7 +55,7 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         from utils import presentation_utils as ppt_utils  # late import to avoid circular
         pres = ppt_utils.open_presentation(path)
         
@@ -77,8 +77,7 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
                 return {
                     "message": f"Applied template '{template_id}' to slide {slide_index}",
                     "slide_index": slide_index,
-                    "template_applied": result,
-                    "file_path": path
+                    "template_applied": result
                 }
             else:
                 return {
@@ -114,7 +113,7 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         from utils import presentation_utils as ppt_utils
         pres = ppt_utils.open_presentation(path)
         
@@ -141,8 +140,7 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
                 return {
                     "message": f"Created slide {slide_index} using template '{template_id}'",
                     "slide_index": slide_index,
-                    "template_applied": result,
-                    "file_path": path
+                    "template_applied": result
                 }
             else:
                 return {
@@ -222,16 +220,14 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
                 return {
                     "message": f"Created presentation with {result['total_slides']} slides",
                     "creation_result": result,
-                    "total_slides": len(pres.slides),
-                    "file_path": saved
+                    "total_slides": len(pres.slides)
                 }
             else:
                 saved = ppt_utils.save_presentation(pres, path)
                 return {
                     "warning": "Presentation created with some errors",
                     "creation_result": result,
-                    "total_slides": len(pres.slides),
-                    "file_path": saved
+                    "total_slides": len(pres.slides)
                 }
                 
         except Exception as e:
@@ -316,7 +312,7 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
         from utils import presentation_utils as ppt_utils
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_count < 3 or slide_count > 20:
@@ -393,8 +389,7 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
                 "color_scheme": color_scheme,
                 "slide_count": slide_count,
                 "generation_result": result,
-                "templates_used": [t[0] for t in templates_to_use],
-                "file_path": path
+                "templates_used": [t[0] for t in templates_to_use]
             }
             
         except Exception as e:
@@ -432,7 +427,7 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
         from utils import presentation_utils as ppt_utils
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -517,8 +512,7 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
                     "auto_wrap": auto_wrap,
                     "optimize_spacing": optimize_spacing,
                     "font_size_range": f"{min_font_size}-{max_font_size}pt"
-                },
-                "file_path": path
+                }
             }
             
         except Exception as e:

@@ -36,7 +36,7 @@ def register_professional_tools(app: FastMCP, resolve_presentation_path):
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         try:
@@ -60,8 +60,7 @@ def register_professional_tools(app: FastMCP, resolve_presentation_path):
                     "message": f"Added professional {slide_type} slide",
                     "slide_index": len(pres.slides) - 1,
                     "color_scheme": color_scheme,
-                    "slide_type": slide_type,
-                    "file_path": path
+                    "slide_type": slide_type
                 }
             
             elif operation == "theme":
@@ -76,8 +75,7 @@ def register_professional_tools(app: FastMCP, resolve_presentation_path):
                 return {
                     "message": f"Applied {color_scheme} theme to presentation",
                     "color_scheme": color_scheme,
-                    "applied_to_existing": apply_to_existing,
-                    "file_path": path
+                    "applied_to_existing": apply_to_existing
                 }
             
             elif operation == "enhance":
@@ -107,8 +105,7 @@ def register_professional_tools(app: FastMCP, resolve_presentation_path):
                     "message": f"Enhanced slide {slide_index} with {color_scheme} scheme",
                     "slide_index": slide_index,
                     "color_scheme": color_scheme,
-                    "enhancements_applied": result.get("enhancements_applied", []),
-                    "file_path": path
+                    "enhancements_applied": result.get("enhancements_applied", [])
                 }
             
             else:
@@ -133,7 +130,7 @@ def register_professional_tools(app: FastMCP, resolve_presentation_path):
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -241,7 +238,6 @@ def register_professional_tools(app: FastMCP, resolve_presentation_path):
                 result["warnings"] = warnings
             
             ppt_utils.save_presentation(pres, path)
-            result["file_path"] = path
             return result
         
         except Exception as e:
@@ -253,7 +249,6 @@ def register_professional_tools(app: FastMCP, resolve_presentation_path):
     def manage_fonts(
         operation: str,  # "analyze", "optimize", "recommend"
         font_path: str,
-        output_path: Optional[str] = None,
         presentation_type: str = "business",
         text_content: Optional[str] = None
     ) -> Dict:
@@ -265,16 +260,14 @@ def register_professional_tools(app: FastMCP, resolve_presentation_path):
             
             elif operation == "optimize":
                 # Optimize font file
-                optimized_path = ppt_utils.optimize_font_for_presentation(
+                ppt_utils.optimize_font_for_presentation(
                     font_path,
-                    output_path=output_path,
                     text_content=text_content
                 )
                 
                 return {
                     "message": f"Optimized font: {font_path}",
-                    "original_path": font_path,
-                    "optimized_path": optimized_path
+                    "font_path": font_path
                 }
             
             elif operation == "recommend":

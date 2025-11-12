@@ -28,7 +28,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         # Validate layout index
@@ -59,8 +59,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             result = {
                 "message": f"Added slide {slide_index} with layout {layout_index}",
                 "slide_index": slide_index,
-                "layout_name": layout.name if hasattr(layout, 'name') else f"Layout {layout_index}",
-                "file_path": path
+                "layout_name": layout.name if hasattr(layout, 'name') else f"Layout {layout_index}"
             }
             ppt_utils.save_presentation(pres, path)
             return result
@@ -74,7 +73,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
         """Get information about a specific slide."""
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -86,7 +85,6 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
         
         try:
             info = ppt_utils.get_slide_info(slide, slide_index)
-            info["file_path"] = path
             return info
         except Exception as e:
             return {
@@ -98,7 +96,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
         """Extract all text content from a specific slide."""
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -111,7 +109,6 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
         try:
             result = ppt_utils.extract_slide_text_content(slide)
             result["slide_index"] = slide_index
-            result["file_path"] = path
             return result
         except Exception as e:
             return {
@@ -123,7 +120,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
         """Extract all text content from all slides in the presentation."""
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         try:
@@ -172,7 +169,6 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             
             return {
                 "success": True,
-                "file_path": path,
                 "total_slides": len(pres.slides),
                 "slides_with_text": len([s for s in slides_text if s.get("text_content") is not None]),
                 "total_text_shapes": total_text_shapes,
@@ -199,7 +195,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -214,7 +210,6 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             ppt_utils.save_presentation(pres, path)
             return {
                 "message": f"Populated placeholder {placeholder_idx} on slide {slide_index}",
-                "file_path": path
             }
         except Exception as e:
             return {
@@ -233,7 +228,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -249,7 +244,6 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             ppt_utils.save_presentation(pres, path)
             return {
                 "message": f"Added {len(bullet_points)} bullet points to placeholder {placeholder_idx} on slide {slide_index}",
-                "file_path": path
             }
         except Exception as e:
             return {
@@ -289,7 +283,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -332,8 +326,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
                 response = {
                     "message": f"Added text box to slide {slide_index}",
                     "shape_index": len(slide.shapes) - 1,
-                    "text": text,
-                    "file_path": path
+                    "text": text
                 }
                 ppt_utils.save_presentation(pres, path)
                 return response
@@ -361,7 +354,6 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
                 ppt_utils.save_presentation(pres, path)
                 return {
                     "message": f"Formatted text shape {shape_index} on slide {slide_index}",
-                    "file_path": path
                 }
             
             elif operation == "validate":
@@ -393,7 +385,6 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
                         ppt_utils.save_presentation(pres, path)
                     except Exception:
                         pass
-                validation_result["file_path"] = path
                 return validation_result
             
             elif operation == "format_runs":
@@ -461,8 +452,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
                     "message": f"Applied formatting to {len(formatted_runs)} text runs on shape {shape_index}",
                     "slide_index": slide_index,
                     "shape_index": shape_index,
-                    "formatted_runs": formatted_runs,
-                    "file_path": path
+                    "formatted_runs": formatted_runs
                 }
             
             else:
@@ -493,7 +483,6 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
         sharpness: float = 1.0,
         blur_radius: float = 0,
         filter_type: Optional[str] = None,
-        output_path: Optional[str] = None,
         presentation_file_name: Optional[str] = None
     ) -> Dict:
         """Unified image management tool for adding and enhancing images."""
@@ -501,7 +490,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -531,7 +520,6 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
                         return {
                             "message": f"Added image from base64 to slide {slide_index}",
                             "shape_index": len(slide.shapes) - 1,
-                            "file_path": path
                         }
                     except Exception as e:
                         return {
@@ -549,8 +537,7 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
                     return {
                         "message": f"Added image to slide {slide_index}",
                         "shape_index": len(slide.shapes) - 1,
-                        "image_path": image_source,
-                        "file_path": path
+                        "image_path": image_source
                     }
             
             elif operation == "enhance":
@@ -566,26 +553,25 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
                     }
                 
                 if enhancement_style == "presentation":
-                    # Apply professional enhancement
-                    enhanced_path = ppt_utils.apply_professional_image_enhancement(
-                        image_source, style="presentation", output_path=output_path
+                    # Apply professional enhancement (in-place)
+                    ppt_utils.apply_professional_image_enhancement(
+                        image_source, style="presentation"
                     )
                 else:
-                    # Apply custom enhancement
-                    enhanced_path = ppt_utils.enhance_image_with_pillow(
+                    # Apply custom enhancement (in-place)
+                    ppt_utils.enhance_image_with_pillow(
                         image_source,
                         brightness=brightness,
                         contrast=contrast,
                         saturation=saturation,
                         sharpness=sharpness,
                         blur_radius=blur_radius,
-                        filter_type=filter_type,
-                        output_path=output_path
+                        filter_type=filter_type
                     )
                 
                 return {
-                    "message": f"Enhanced image: {image_source}",
-                    "enhanced_path": enhanced_path
+                    "message": f"Enhanced image",
+                    "image_path": image_source
                 }
             
             else:

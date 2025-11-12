@@ -48,7 +48,7 @@ def register_connector_tools(app, resolve_presentation_path):
                 return {"error": "presentation_file_name is required"}
             path = resolve_presentation_path(presentation_file_name)
             if not os.path.exists(path):
-                return {"error": f"File not found: {path}"}
+                return {"error": f"File not found: {presentation_file_name}"}
             pres = ppt_utils.open_presentation(path)
             
             # Validate slide index
@@ -87,8 +87,7 @@ def register_connector_tools(app, resolve_presentation_path):
                 "connector_type": connector_type,
                 "start_point": [start_x, start_y],
                 "end_point": [end_x, end_y],
-                "shape_index": len(slide.shapes) - 1,
-                "file_path": path
+                "shape_index": len(slide.shapes) - 1
             }
             
         except Exception as e:

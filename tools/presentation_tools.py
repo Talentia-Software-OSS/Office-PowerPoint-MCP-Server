@@ -18,14 +18,14 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
         pres = ppt_utils.create_presentation()
         saved_path = ppt_utils.save_presentation(pres, path)
         return {
-            "message": f"Created new presentation at: {saved_path}",
-            "file_path": saved_path,
+            "message": f"Created new presentation: {presentation_file_name}",
             "slide_count": len(pres.slides),
         }
 
     @app.tool()
     def create_presentation_from_template(template_path: str, presentation_file_name: str) -> Dict:
         """Create a new PowerPoint presentation from a template file and save to disk."""
+        original_template_path = template_path
         # Check if template file exists
         if not os.path.exists(template_path):
             # Try to find the template by searching in configured directories
@@ -55,9 +55,7 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
         path = resolve_presentation_path(presentation_file_name)
         saved_path = ppt_utils.save_presentation(pres, path)
         return {
-            "message": f"Created new presentation from template '{template_path}'",
-            "template_path": template_path,
-            "file_path": saved_path,
+            "message": f"Created new presentation from template '{original_template_path}'",
             "slide_count": len(pres.slides),
             "layout_count": len(pres.slide_layouts)
         }
@@ -67,14 +65,13 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
         """Open an existing presentation (stateless) and return basic info."""
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         try:
             pres = ppt_utils.open_presentation(path)
         except Exception as e:
             return {"error": f"Failed to open presentation: {str(e)}"}
         return {
-            "message": f"Opened presentation: {path}",
-            "file_path": path,
+            "message": f"Opened presentation: {presentation_file_name}",
             "slide_count": len(pres.slides),
         }
 
@@ -83,12 +80,14 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
         """Re-save a presentation to disk, optionally to a new path (stateless)."""
         src_path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(src_path):
-            return {"error": f"File not found: {src_path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         try:
             pres = ppt_utils.open_presentation(src_path)
-            dest_path = os.path.abspath(file_path) if file_path else src_path
+            dest_path = resolve_presentation_path(file_path) if file_path else src_path
             saved_path = ppt_utils.save_presentation(pres, dest_path)
-            return {"message": f"Presentation saved to {saved_path}", "file_path": saved_path}
+            if file_path:
+                return {"message": f"Presentation saved to {file_path}"}
+            return {"message": "Presentation saved"}
         except Exception as e:
             return {"error": f"Failed to save presentation: {str(e)}"}
 
@@ -97,11 +96,10 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
         """Get information about a presentation file (stateless)."""
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         try:
             pres = ppt_utils.open_presentation(path)
             info = ppt_utils.get_presentation_info(pres)
-            info["file_path"] = path
             return info
         except Exception as e:
             return {"error": f"Failed to get presentation info: {str(e)}"}
@@ -146,7 +144,7 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {path}"}
+            return {"error": f"File not found: {presentation_file_name}"}
         pres = ppt_utils.open_presentation(path)
         try:
             ppt_utils.set_core_properties(
@@ -159,8 +157,7 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
             )
             ppt_utils.save_presentation(pres, path)
             return {
-                "message": "Core properties updated successfully",
-                "file_path": path
+                "message": "Core properties updated successfully"
             }
         except Exception as e:
             return {

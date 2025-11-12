@@ -38,7 +38,7 @@ def register_chart_tools(app, resolve_presentation_path):
                 return {"error": "presentation_file_name is required"}
             path = resolve_presentation_path(presentation_file_name)
             if not os.path.exists(path):
-                return {"error": f"File not found: {path}"}
+                return {"error": f"File not found: {presentation_file_name}"}
             pres = ppt_utils.open_presentation(path)
             
             # Validate slide index
@@ -78,8 +78,7 @@ def register_chart_tools(app, resolve_presentation_path):
                 "message": f"Updated chart data on slide {slide_index}, shape {shape_index}",
                 "categories": categories,
                 "series_count": len(series_data),
-                "series_names": [s['name'] for s in series_data],
-                "file_path": path
+                "series_names": [s['name'] for s in series_data]
             }
             
         except Exception as e:

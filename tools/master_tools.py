@@ -35,7 +35,7 @@ def register_master_tools(app, resolve_presentation_path):
                 return {"error": "presentation_file_name is required"}
             path = resolve_presentation_path(presentation_file_name)
             if not os.path.exists(path):
-                return {"error": f"File not found: {path}"}
+                return {"error": f"File not found: {presentation_file_name}"}
             pres = ppt_utils.open_presentation(path)
             
             if operation == "list":
@@ -51,8 +51,7 @@ def register_master_tools(app, resolve_presentation_path):
                 return {
                     "message": f"Found {len(masters_info)} slide masters",
                     "masters": masters_info,
-                    "total_masters": len(pres.slide_masters),
-                    "file_path": path
+                    "total_masters": len(pres.slide_masters)
                 }
             
             # Validate master index
@@ -74,8 +73,7 @@ def register_master_tools(app, resolve_presentation_path):
                 return {
                     "message": f"Master {master_index} has {len(layouts_info)} layouts",
                     "master_index": master_index,
-                    "layouts": layouts_info,
-                    "file_path": path
+                    "layouts": layouts_info
                 }
             
             elif operation == "get_info":
@@ -100,8 +98,7 @@ def register_master_tools(app, resolve_presentation_path):
                         "master_index": master_index,
                         "layout_index": layout_index,
                         "layout_name": layout.name,
-                        "placeholders": placeholders_info,
-                        "file_path": path
+                        "placeholders": placeholders_info
                     }
                 else:
                     # Master info
@@ -109,8 +106,7 @@ def register_master_tools(app, resolve_presentation_path):
                         "message": f"Master {master_index} information",
                         "master_index": master_index,
                         "layout_count": len(master.slide_layouts),
-                        "name": getattr(master, 'name', f"Master {master_index}"),
-                        "file_path": path
+                        "name": getattr(master, 'name', f"Master {master_index}")
                     }
             
             else:

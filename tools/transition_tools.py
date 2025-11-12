@@ -37,7 +37,7 @@ def register_transition_tools(app, resolve_presentation_path):
                 return {"error": "presentation_file_name is required"}
             path = resolve_presentation_path(presentation_file_name)
             if not os.path.exists(path):
-                return {"error": f"File not found: {path}"}
+                return {"error": f"File not found: {presentation_file_name}"}
             pres = ppt_utils.open_presentation(path)
             
             # Validate slide index
@@ -51,8 +51,7 @@ def register_transition_tools(app, resolve_presentation_path):
                 return {
                     "message": f"Transition info for slide {slide_index}",
                     "slide_index": slide_index,
-                    "note": "Transition reading has limited support in python-pptx",
-                    "file_path": path
+                    "note": "Transition reading has limited support in python-pptx"
                 }
             
             elif operation == "set":
@@ -65,7 +64,6 @@ def register_transition_tools(app, resolve_presentation_path):
                 }
                 # Placeholder: save to persist any possible metadata changes in future support
                 ppt_utils.save_presentation(pres, path)
-                result["file_path"] = path
                 return result
             
             elif operation == "remove":
@@ -75,7 +73,6 @@ def register_transition_tools(app, resolve_presentation_path):
                     "note": "Transition removal has limited support in python-pptx - this is a placeholder for future enhancement"
                 }
                 ppt_utils.save_presentation(pres, path)
-                result["file_path"] = path
                 return result
             
             else:

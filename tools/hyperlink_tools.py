@@ -41,7 +41,7 @@ def register_hyperlink_tools(app, resolve_presentation_path):
                 return {"error": "presentation_file_name is required"}
             path = resolve_presentation_path(presentation_file_name)
             if not os.path.exists(path):
-                return {"error": f"File not found: {path}"}
+                return {"error": f"File not found: {presentation_file_name}"}
             pres = ppt_utils.open_presentation(path)
             
             # Validate slide index
@@ -68,8 +68,7 @@ def register_hyperlink_tools(app, resolve_presentation_path):
                 
                 return {
                     "message": f"Found {len(hyperlinks)} hyperlinks on slide {slide_index}",
-                    "hyperlinks": hyperlinks,
-                    "file_path": path
+                    "hyperlinks": hyperlinks
                 }
             
             # For other operations, validate shape index
@@ -96,8 +95,7 @@ def register_hyperlink_tools(app, resolve_presentation_path):
                 return {
                     "message": f"Added hyperlink '{text}' -> '{url}' to shape {shape_index}",
                     "text": text,
-                    "url": url,
-                    "file_path": path
+                    "url": url
                 }
             
             elif operation == "update":
@@ -116,8 +114,7 @@ def register_hyperlink_tools(app, resolve_presentation_path):
                         "message": f"Updated hyperlink from '{old_url}' to '{url}'",
                         "old_url": old_url,
                         "new_url": url,
-                        "text": run.text,
-                        "file_path": path
+                        "text": run.text
                     }
                 else:
                     return {"error": f"Run index {run_index} out of range"}
@@ -134,8 +131,7 @@ def register_hyperlink_tools(app, resolve_presentation_path):
                     return {
                         "message": f"Removed hyperlink '{old_url}' from text '{run.text}'",
                         "removed_url": old_url,
-                        "text": run.text,
-                        "file_path": path
+                        "text": run.text
                     }
                 else:
                     return {"error": f"Run index {run_index} out of range"}
