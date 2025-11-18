@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Any
 from mcp.server.fastmcp import FastMCP
 import utils.template_utils as template_utils
 import os
+from .response_utils import sanitize_presentation_name
 
 
 def register_template_tools(app: FastMCP, resolve_presentation_path):
@@ -55,7 +56,9 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         from utils import presentation_utils as ppt_utils  # late import to avoid circular
         pres = ppt_utils.open_presentation(path)
         
@@ -113,7 +116,9 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         from utils import presentation_utils as ppt_utils
         pres = ppt_utils.open_presentation(path)
         
@@ -312,7 +317,9 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
         from utils import presentation_utils as ppt_utils
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_count < 3 or slide_count > 20:
@@ -427,7 +434,9 @@ def register_template_tools(app: FastMCP, resolve_presentation_path):
         from utils import presentation_utils as ppt_utils
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):

@@ -8,6 +8,7 @@ import utils as ppt_utils
 import tempfile
 import base64
 import os
+from .response_utils import sanitize_presentation_name
 
 
 def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb, resolve_presentation_path):
@@ -28,7 +29,9 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         # Validate layout index
@@ -73,7 +76,9 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
         """Get information about a specific slide."""
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -96,7 +101,9 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
         """Extract all text content from a specific slide."""
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -120,7 +127,9 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
         """Extract all text content from all slides in the presentation."""
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         try:
@@ -195,7 +204,9 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -228,7 +239,9 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -283,7 +296,9 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -490,7 +505,9 @@ def register_content_tools(app: FastMCP, validate_parameters, is_positive, is_no
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):

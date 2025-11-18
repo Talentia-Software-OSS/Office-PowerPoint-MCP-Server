@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Any
 from mcp.server.fastmcp import FastMCP
 import utils as ppt_utils
 import os
+from .response_utils import sanitize_presentation_name
 
 
 def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is_non_negative, is_in_range, is_valid_rgb, add_shape_direct, resolve_presentation_path):
@@ -34,7 +35,9 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -145,7 +148,9 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -224,7 +229,9 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):
@@ -297,7 +304,9 @@ def register_structural_tools(app: FastMCP, validate_parameters, is_positive, is
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         
         if slide_index < 0 or slide_index >= len(pres.slides):

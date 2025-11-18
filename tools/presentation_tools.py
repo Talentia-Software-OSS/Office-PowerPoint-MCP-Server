@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Any
 import os
 from mcp.server.fastmcp import FastMCP
 import utils as ppt_utils
+from .response_utils import sanitize_presentation_name
 
 
 def register_presentation_tools(app: FastMCP, get_template_search_directories, resolve_presentation_path):
@@ -17,8 +18,9 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
         path = resolve_presentation_path(presentation_file_name)
         pres = ppt_utils.create_presentation()
         saved_path = ppt_utils.save_presentation(pres, path)
+        safe_name = sanitize_presentation_name(presentation_file_name)
         return {
-            "message": f"Created new presentation: {presentation_file_name}",
+            "message": f"Created new presentation: {safe_name}",
             "slide_count": len(pres.slides),
         }
 
@@ -64,14 +66,15 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
     def open_presentation(presentation_file_name: str) -> Dict:
         """Open an existing presentation (stateless) and return basic info."""
         path = resolve_presentation_path(presentation_file_name)
+        safe_name = sanitize_presentation_name(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {"error": f"File not found: {safe_name}"}
         try:
             pres = ppt_utils.open_presentation(path)
         except Exception as e:
             return {"error": f"Failed to open presentation: {str(e)}"}
         return {
-            "message": f"Opened presentation: {presentation_file_name}",
+            "message": f"Opened presentation: {safe_name}",
             "slide_count": len(pres.slides),
         }
 
@@ -80,7 +83,9 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
         """Re-save a presentation to disk, optionally to a new path (stateless)."""
         src_path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(src_path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         try:
             pres = ppt_utils.open_presentation(src_path)
             dest_path = resolve_presentation_path(file_path) if file_path else src_path
@@ -96,7 +101,9 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
         """Get information about a presentation file (stateless)."""
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         try:
             pres = ppt_utils.open_presentation(path)
             info = ppt_utils.get_presentation_info(pres)
@@ -144,7 +151,9 @@ def register_presentation_tools(app: FastMCP, get_template_search_directories, r
             return {"error": "presentation_file_name is required"}
         path = resolve_presentation_path(presentation_file_name)
         if not os.path.exists(path):
-            return {"error": f"File not found: {presentation_file_name}"}
+            return {
+                "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+            }
         pres = ppt_utils.open_presentation(path)
         try:
             ppt_utils.set_core_properties(

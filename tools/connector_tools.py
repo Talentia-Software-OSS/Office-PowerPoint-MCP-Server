@@ -10,6 +10,14 @@ from pptx.dml.color import RGBColor
 import os
 from mcp.server.fastmcp import FastMCP
 import utils as ppt_utils
+from .response_utils import sanitize_presentation_name
+
+
+def is_valid_rgb(color_list: Optional[List[int]]) -> bool:
+    """Validate that a list represents an RGB color."""
+    if not isinstance(color_list, list) or len(color_list) != 3:
+        return False
+    return all(isinstance(c, int) and 0 <= c <= 255 for c in color_list)
 
 def register_connector_tools(app, resolve_presentation_path):
     """Register connector tools with the FastMCP app."""
@@ -48,7 +56,9 @@ def register_connector_tools(app, resolve_presentation_path):
                 return {"error": "presentation_file_name is required"}
             path = resolve_presentation_path(presentation_file_name)
             if not os.path.exists(path):
-                return {"error": f"File not found: {presentation_file_name}"}
+                return {
+                    "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+                }
             pres = ppt_utils.open_presentation(path)
             
             # Validate slide index
