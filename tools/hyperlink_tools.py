@@ -4,9 +4,12 @@ Implements hyperlink operations for text shapes and runs.
 """
 
 from typing import Dict, List, Optional, Any
+import os
+from mcp.server.fastmcp import FastMCP
+import utils as ppt_utils
+from .response_utils import sanitize_presentation_name
 
-def register_hyperlink_tools(app, presentations, get_current_presentation_id, validate_parameters, 
-                          is_positive, is_non_negative, is_in_range, is_valid_rgb):
+def register_hyperlink_tools(app, resolve_presentation_path):
     """Register hyperlink management tools with the FastMCP app."""
     
     @app.tool()
@@ -17,7 +20,7 @@ def register_hyperlink_tools(app, presentations, get_current_presentation_id, va
         text: str = None, 
         url: str = None,
         run_index: int = 0,
-        presentation_id: str = None
+        presentation_file_name: str = None
     ) -> Dict:
         """
         Manage hyperlinks in text shapes and runs.
@@ -29,18 +32,20 @@ def register_hyperlink_tools(app, presentations, get_current_presentation_id, va
             text: Text to make into hyperlink (for "add" operation)
             url: URL for the hyperlink
             run_index: Index of text run within the shape (0-based)
-            presentation_id: Optional presentation ID (uses current if not provided)
+            presentation file name: File name or path to the presentation
             
         Returns:
             Dictionary with operation results
         """
         try:
-            # Get presentation
-            pres_id = presentation_id or get_current_presentation_id()
-            if pres_id not in presentations:
-                return {"error": "Presentation not found"}
-            
-            pres = presentations[pres_id]
+            if not presentation_file_name:
+                return {"error": "presentation_file_name is required"}
+            path = resolve_presentation_path(presentation_file_name)
+            if not os.path.exists(path):
+                return {
+                    "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+                }
+            pres = ppt_utils.open_presentation(path)
             
             # Validate slide index
             if not (0 <= slide_index < len(pres.slides)):
@@ -88,6 +93,7 @@ def register_hyperlink_tools(app, presentations, get_current_presentation_id, va
                 run = paragraph.add_run()
                 run.text = text
                 run.hyperlink.address = url
+                ppt_utils.save_presentation(pres, path)
                 
                 return {
                     "message": f"Added hyperlink '{text}' -> '{url}' to shape {shape_index}",
@@ -105,6 +111,7 @@ def register_hyperlink_tools(app, presentations, get_current_presentation_id, va
                     run = paragraphs[0].runs[run_index]
                     old_url = run.hyperlink.address
                     run.hyperlink.address = url
+                    ppt_utils.save_presentation(pres, path)
                     
                     return {
                         "message": f"Updated hyperlink from '{old_url}' to '{url}'",
@@ -122,6 +129,7 @@ def register_hyperlink_tools(app, presentations, get_current_presentation_id, va
                     run = paragraphs[0].runs[run_index]
                     old_url = run.hyperlink.address
                     run.hyperlink.address = None
+                    ppt_utils.save_presentation(pres, path)
                     
                     return {
                         "message": f"Removed hyperlink '{old_url}' from text '{run.text}'",

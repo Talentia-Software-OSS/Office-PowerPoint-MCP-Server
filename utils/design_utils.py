@@ -397,8 +397,7 @@ def format_shape(shape, fill_color: Tuple[int, int, int] = None,
 # Image enhancement functions
 def enhance_image_with_pillow(image_path: str, brightness: float = 1.0, contrast: float = 1.0,
                              saturation: float = 1.0, sharpness: float = 1.0,
-                             blur_radius: float = 0, filter_type: str = None,
-                             output_path: str = None) -> str:
+                             blur_radius: float = 0, filter_type: str = None) -> str:
     """
     Enhance an image using PIL with various adjustments.
     
@@ -410,10 +409,9 @@ def enhance_image_with_pillow(image_path: str, brightness: float = 1.0, contrast
         sharpness: Sharpness factor (1.0 = no change)
         blur_radius: Blur radius (0 = no blur)
         filter_type: Filter type ('BLUR', 'SHARPEN', 'SMOOTH', etc.)
-        output_path: Output path (if None, generates temporary file)
         
     Returns:
-        Path to enhanced image
+        Path to enhanced image (same as input, overwritten in place)
     """
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Image file not found: {image_path}")
@@ -451,26 +449,32 @@ def enhance_image_with_pillow(image_path: str, brightness: float = 1.0, contrast
         if filter_type.upper() in filter_map:
             img = img.filter(filter_map[filter_type.upper()])
     
-    # Save enhanced image
-    if output_path is None:
-        output_path = tempfile.mktemp(suffix='.png')
-    
-    img.save(output_path)
-    return output_path
+    # Save enhanced image atomically in-place
+    suffix = os.path.splitext(image_path)[1] or '.png'
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+        tmp_path = tmp_file.name
+    try:
+        img.save(tmp_path)
+        os.replace(tmp_path, image_path)
+    finally:
+        if os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+    return image_path
 
 
-def apply_professional_image_enhancement(image_path: str, style: str = 'presentation',
-                                       output_path: str = None) -> str:
+def apply_professional_image_enhancement(image_path: str, style: str = 'presentation') -> str:
     """
     Apply professional image enhancement presets.
     
     Args:
         image_path: Path to input image
         style: Enhancement style ('presentation', 'bright', 'soft')
-        output_path: Output path (if None, generates temporary file)
         
     Returns:
-        Path to enhanced image
+        Path to enhanced image (same as input, overwritten in place)
     """
     enhancement_presets = {
         'presentation': {
@@ -495,7 +499,7 @@ def apply_professional_image_enhancement(image_path: str, style: str = 'presenta
     }
     
     preset = enhancement_presets.get(style, enhancement_presets['presentation'])
-    return enhance_image_with_pillow(image_path, output_path=output_path, **preset)
+    return enhance_image_with_pillow(image_path, **preset)
 
 
 # Picture effects functions (simplified implementations)
@@ -596,7 +600,7 @@ def analyze_font_file(font_path: str) -> Dict:
                 font_style = str(record)
         
         return {
-            "file_path": font_path,
+            "font_path": font_path,
             "font_family": font_family,
             "font_style": font_style,
             "num_glyphs": font.getGlyphSet().keys().__len__(),
@@ -605,24 +609,22 @@ def analyze_font_file(font_path: str) -> Dict:
         }
     except Exception as e:
         return {
-            "file_path": font_path,
+            "font_path": font_path,
             "analysis_success": False,
             "error": str(e)
         }
 
 
-def optimize_font_for_presentation(font_path: str, output_path: str = None,
-                                 text_content: str = None) -> str:
+def optimize_font_for_presentation(font_path: str, text_content: str = None) -> str:
     """
     Optimize a font file for presentation use.
     
     Args:
         font_path: Path to input font file
-        output_path: Path for optimized font (if None, generates temporary file)
         text_content: Text content to subset for (if None, keeps all characters)
         
     Returns:
-        Path to optimized font file
+        Path to optimized font file (same as input, overwritten in place)
     """
     try:
         font = TTFont(font_path)
@@ -633,12 +635,20 @@ def optimize_font_for_presentation(font_path: str, output_path: str = None,
             subsetter.populate(text=text_content)
             subsetter.subset(font)
         
-        # Generate output path if not provided
-        if output_path is None:
-            output_path = tempfile.mktemp(suffix='.ttf')
-        
-        font.save(output_path)
-        return output_path
+        # Save atomically in-place
+        suffix = os.path.splitext(font_path)[1] or '.ttf'
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+            tmp_path = tmp_file.name
+        try:
+            font.save(tmp_path)
+            os.replace(tmp_path, font_path)
+        finally:
+            if os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except Exception:
+                    pass
+        return font_path
     except Exception as e:
         raise Exception(f"Font optimization failed: {str(e)}")
 

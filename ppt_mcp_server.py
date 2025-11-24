@@ -9,12 +9,13 @@ from typing import Dict, Any
 from mcp.server.fastmcp import FastMCP
 
 # import utils  # Currently unused
+import platform
 from tools import (
     register_presentation_tools,
     register_content_tools,
     register_structural_tools,
     register_professional_tools,
-    register_template_tools,
+    # register_template_tools,
     register_hyperlink_tools,
     register_chart_tools,
     register_connector_tools,
@@ -27,9 +28,46 @@ app = FastMCP(
     name="ppt-mcp-server"
 )
 
+# ---- Presentations Root Configuration (stateless file resolver) ----
+_presentations_root_cli = None  # set via CLI parsing
+
+def get_presentations_root() -> str:
+    """
+    Resolve the base directory for storing/loading presentation files.
+    Priority: CLI flag -> env var PPT_PRESENTATIONS_ROOT -> ./presentations
+    """
+    if _presentations_root_cli:
+        return _presentations_root_cli
+    return os.environ.get("PPT_PRESENTATIONS_ROOT", "./presentations")
+
+def resolve_presentation_path(name_or_path: str) -> str:
+    """
+    Resolve a user-supplied file name or path to an absolute path.
+    - If input includes a directory or is absolute, use as-is (expanded/absolute).
+    - If only a file name, place it under the presentations root directory.
+    Ensures the root directory exists.
+    """
+    try:
+        raw = name_or_path.strip()
+        if os.path.isabs(raw) or os.path.dirname(raw):
+            abs_path = os.path.abspath(raw)
+            # Ensure directory exists for absolute or directory-containing paths
+            base_name = os.path.basename(abs_path)
+            looks_like_file = '.' in base_name and not base_name.startswith('.')
+            dir_to_create = os.path.dirname(abs_path) if looks_like_file else abs_path
+            if dir_to_create:
+                os.makedirs(dir_to_create, exist_ok=True)
+            return abs_path
+        root = os.path.abspath(get_presentations_root())
+        os.makedirs(root, exist_ok=True)
+        return os.path.join(root, raw)
+    except Exception as e:
+        print(f"Error resolving presentation path: {e}")
+        raise
+
 # Global state to store presentations in memory
-presentations = {}
-current_presentation_id = None
+# presentations = {}
+# current_presentation_id = None
 
 # Template configuration
 def get_template_search_directories():
@@ -45,7 +83,6 @@ def get_template_search_directories():
     if template_env_path:
         # If environment variable is set, use it as the primary template directory
         # Support multiple paths separated by colon (Unix) or semicolon (Windows)
-        import platform
         separator = ';' if platform.system() == "Windows" else ':'
         env_dirs = [path.strip() for path in template_env_path.split(separator) if path.strip()]
         
@@ -67,20 +104,20 @@ def get_template_search_directories():
 
 # ---- Helper Functions ----
 
-def get_current_presentation():
-    """Get the current presentation object or raise an error if none is loaded."""
-    if current_presentation_id is None or current_presentation_id not in presentations:
-        raise ValueError("No presentation is currently loaded. Please create or open a presentation first.")
-    return presentations[current_presentation_id]
+# def get_current_presentation():
+#     """Get the current presentation object or raise an error if none is loaded."""
+#     if current_presentation_id is None or current_presentation_id not in presentations:
+#         raise ValueError("No presentation is currently loaded. Please create or open a presentation first.")
+#     return presentations[current_presentation_id]
 
-def get_current_presentation_id():
-    """Get the current presentation ID."""
-    return current_presentation_id
+# def get_current_presentation_id():
+#     """Get the current presentation ID."""
+#     return current_presentation_id
 
-def set_current_presentation_id(pres_id):
-    """Set the current presentation ID."""
-    global current_presentation_id
-    current_presentation_id = pres_id
+# def set_current_presentation_id(pres_id):
+#     """Set the current presentation ID."""
+#     global current_presentation_id
+#     current_presentation_id = pres_id
 
 def validate_parameters(params):
     """
@@ -187,179 +224,72 @@ def add_shape_direct(slide, shape_type: str, left: float, top: float, width: flo
     except Exception as e:
         raise ValueError(f"Failed to create '{shape_type}' shape using direct value {shape_value}: {str(e)}")
 
-# ---- Custom presentation management wrapper ----
-
-class PresentationManager:
-    """Wrapper to handle presentation state updates."""
-    
-    def __init__(self, presentations_dict):
-        self.presentations = presentations_dict
-    
-    def store_presentation(self, pres, pres_id):
-        """Store a presentation and set it as current."""
-        self.presentations[pres_id] = pres
-        set_current_presentation_id(pres_id)
-        return pres_id
-
 # ---- Register Tools ----
-
-# Create presentation manager wrapper
-presentation_manager = PresentationManager(presentations)
-
-# Wrapper functions to handle state management
-def create_presentation_wrapper(original_func):
-    """Wrapper to handle presentation creation with state management."""
-    def wrapper(*args, **kwargs):
-        result = original_func(*args, **kwargs)
-        if "presentation_id" in result and result["presentation_id"] in presentations:
-            set_current_presentation_id(result["presentation_id"])
-        return result
-    return wrapper
-
-def open_presentation_wrapper(original_func):
-    """Wrapper to handle presentation opening with state management."""
-    def wrapper(*args, **kwargs):
-        result = original_func(*args, **kwargs)
-        if "presentation_id" in result and result["presentation_id"] in presentations:
-            set_current_presentation_id(result["presentation_id"])
-        return result
-    return wrapper
-
-# Register all tool modules
 register_presentation_tools(
     app, 
-    presentations, 
-    get_current_presentation_id, 
-    get_template_search_directories
+    get_template_search_directories,
+    resolve_presentation_path
 )
 
 register_content_tools(
     app,
-    presentations,
-    get_current_presentation_id,
-    validate_parameters,
-    is_positive,
-    is_non_negative,
-    is_in_range,
-    is_valid_rgb
-)
-
-register_structural_tools(
-    app,
-    presentations,
-    get_current_presentation_id,
     validate_parameters,
     is_positive,
     is_non_negative,
     is_in_range,
     is_valid_rgb,
-    add_shape_direct
+    resolve_presentation_path
+)
+
+register_structural_tools(
+    app,
+    validate_parameters,
+    is_positive,
+    is_non_negative,
+    is_in_range,
+    is_valid_rgb,
+    add_shape_direct,
+    resolve_presentation_path
 )
 
 register_professional_tools(
     app,
-    presentations,
-    get_current_presentation_id
+    resolve_presentation_path
 )
 
-register_template_tools(
-    app,
-    presentations,
-    get_current_presentation_id
-)
+# register_template_tools(
+#     app,
+#     resolve_presentation_path
+# )
 
 register_hyperlink_tools(
     app,
-    presentations,
-    get_current_presentation_id,
-    validate_parameters,
-    is_positive,
-    is_non_negative,
-    is_in_range,
-    is_valid_rgb
+    resolve_presentation_path
 )
 
 register_chart_tools(
     app,
-    presentations,
-    get_current_presentation_id,
-    validate_parameters,
-    is_positive,
-    is_non_negative,
-    is_in_range,
-    is_valid_rgb
+    resolve_presentation_path
 )
 
 
 register_connector_tools(
     app,
-    presentations,
-    get_current_presentation_id,
-    validate_parameters,
-    is_positive,
-    is_non_negative,
-    is_in_range,
-    is_valid_rgb
+    resolve_presentation_path
 )
 
 register_master_tools(
     app,
-    presentations,
-    get_current_presentation_id,
-    validate_parameters,
-    is_positive,
-    is_non_negative,
-    is_in_range,
-    is_valid_rgb
+    resolve_presentation_path
 )
 
 register_transition_tools(
     app,
-    presentations,
-    get_current_presentation_id,
-    validate_parameters,
-    is_positive,
-    is_non_negative,
-    is_in_range,
-    is_valid_rgb
+    resolve_presentation_path
 )
 
 
 # ---- Additional Utility Tools ----
-
-@app.tool()
-def list_presentations() -> Dict:
-    """List all loaded presentations."""
-    return {
-        "presentations": [
-            {
-                "id": pres_id,
-                "slide_count": len(pres.slides),
-                "is_current": pres_id == current_presentation_id
-            }
-            for pres_id, pres in presentations.items()
-        ],
-        "current_presentation_id": current_presentation_id,
-        "total_presentations": len(presentations)
-    }
-
-@app.tool()
-def switch_presentation(presentation_id: str) -> Dict:
-    """Switch to a different loaded presentation."""
-    if presentation_id not in presentations:
-        return {
-            "error": f"Presentation '{presentation_id}' not found. Available presentations: {list(presentations.keys())}"
-        }
-    
-    global current_presentation_id
-    old_id = current_presentation_id
-    current_presentation_id = presentation_id
-    
-    return {
-        "message": f"Switched from presentation '{old_id}' to '{presentation_id}'",
-        "previous_presentation_id": old_id,
-        "current_presentation_id": current_presentation_id
-    }
 
 @app.tool()
 def get_server_info() -> Dict:
@@ -367,9 +297,7 @@ def get_server_info() -> Dict:
     return {
         "name": "PowerPoint MCP Server - Enhanced Edition",
         "version": "2.1.0",
-        "total_tools": 32,  # Organized into 11 specialized modules
-        "loaded_presentations": len(presentations),
-        "current_presentation": current_presentation_id,
+        "total_tools": 30,  # Updated after removing state-only tools
         "features": [
             "Presentation Management (7 tools)",
             "Content Management (6 tools)", 
@@ -446,5 +374,16 @@ if __name__ == "__main__":
         default=8000,
         help="Port to run the MCP server on (default: 8000)"
     )
+
+    parser.add_argument(
+        "-r",
+        "--presentations-root",
+        type=str,
+        default=None,
+        help="Root directory for storing/loading presentations (default: ./presentations or PPT_PRESENTATIONS_ROOT)"
+    )
     args = parser.parse_args()
+    # Set CLI-provided presentations root if specified
+    if args.presentations_root:
+        _presentations_root_cli = args.presentations_root
     main(args.transport, args.port)

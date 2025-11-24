@@ -4,9 +4,12 @@ Implements slide master and layout access capabilities.
 """
 
 from typing import Dict, List, Optional, Any
+import os
+from mcp.server.fastmcp import FastMCP
+import utils as ppt_utils
+from .response_utils import sanitize_presentation_name
 
-def register_master_tools(app, presentations, get_current_presentation_id, validate_parameters, 
-                          is_positive, is_non_negative, is_in_range, is_valid_rgb):
+def register_master_tools(app, resolve_presentation_path):
     """Register slide master management tools with the FastMCP app."""
     
     @app.tool()
@@ -14,7 +17,7 @@ def register_master_tools(app, presentations, get_current_presentation_id, valid
         operation: str,
         master_index: int = 0,
         layout_index: int = None,
-        presentation_id: str = None
+        presentation_file_name: str = None
     ) -> Dict:
         """
         Access and manage slide master properties and layouts.
@@ -29,12 +32,14 @@ def register_master_tools(app, presentations, get_current_presentation_id, valid
             Dictionary with slide master information
         """
         try:
-            # Get presentation
-            pres_id = presentation_id or get_current_presentation_id()
-            if pres_id not in presentations:
-                return {"error": "Presentation not found"}
-            
-            pres = presentations[pres_id]
+            if not presentation_file_name:
+                return {"error": "presentation_file_name is required"}
+            path = resolve_presentation_path(presentation_file_name)
+            if not os.path.exists(path):
+                return {
+                    "error": f"File not found: {sanitize_presentation_name(presentation_file_name)}"
+                }
+            pres = ppt_utils.open_presentation(path)
             
             if operation == "list":
                 # List all slide masters
